@@ -22,4 +22,5 @@ class State(BaseModel, Base):
         for city in extracted_cities:
             if self.id == city.state_id:
                 my_list.append(city)
+        print(my_list)
         return my_list
