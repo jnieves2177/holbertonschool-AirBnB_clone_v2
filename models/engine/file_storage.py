@@ -1,68 +1,48 @@
 #!/usr/bin/python3
-"""This module defines a class to manage file storage for hbnb clone"""
-import json
-from models.base_model import BaseModel
-from models.user import User
+""" Test delete feature
+"""
+from models.engine.file_storage import FileStorage
 from models.state import State
-from models.city import City
-from models.review import Review
-from models.amenity import Amenity
-from models.place import Place
 
+fs = FileStorage()
 
-class FileStorage:
-    """This class manages storage of hbnb models in JSON format"""
-    __file_path = 'file.json'
-    __objects = {}
+# All States
+all_states = fs.all(State)
+print("All States: {}".format(len(all_states.keys())))
+for state_key in all_states.keys():
+    print(all_states[state_key])
 
-    def all(self, cls=None):
-        """Returns a dictionary of models currently in a specific class"""
-        if cls is None:
-            return FileStorage.__objects
-        else:
-            temp = {}
-            for key, val in FileStorage.__objects.items():
-                if isinstance(val, cls):
-                    temp[key] = val
-            return temp
+# Create a new State
+new_state = State()
+new_state.name = "California"
+fs.new(new_state)
+fs.save()
+print("New State: {}".format(new_state))
 
-    def new(self, obj):
-        """Adds new object to storage dictionary"""
-        FileStorage.__objects.update(
-            {obj.to_dict()['__class__'] + '.' + obj.id: obj})
+# All States
+all_states = fs.all(State)
+print("All States: {}".format(len(all_states.keys())))
+for state_key in all_states.keys():
+    print(all_states[state_key])
 
-    def save(self):
-        """Saves storage dictionary to file"""
-        with open(FileStorage.__file_path, 'w') as f:
-            temp = {}
-            temp.update(FileStorage.__objects)
-            for key, val in temp.items():
-                temp[key] = val.to_dict()
-            json.dump(temp, f)
+# Create another State
+another_state = State()
+another_state.name = "Nevada"
+fs.new(another_state)
+fs.save()
+print("Another State: {}".format(another_state))
 
-    def reload(self):
-        """Loads storage dictionary from file"""
+# All States
+all_states = fs.all(State)
+print("All States: {}".format(len(all_states.keys())))
+for state_key in all_states.keys():
+    print(all_states[state_key])
 
-        classes = {
-            'BaseModel': BaseModel, 'User': User, 'Place': Place,
-            'State': State, 'City': City, 'Amenity': Amenity,
-            'Review': Review
-        }
-        try:
-            temp = {}
-            with open(FileStorage.__file_path, 'r') as f:
-                temp = json.load(f)
-                for key, val in temp.items():
-                    FileStorage.__objects[key] = classes[val['__class__']](
-                        **val)
-        except FileNotFoundError:
-            pass
+# Delete the new State
+fs.delete(new_state)
 
-    def delete(self, obj=None):
-        """Delete obj from __objects if it’s inside"""
-        if obj is None:
-            return
-        key = f"{obj.__class__.__name__}.{obj.id}"
-        if key in self.__objects:
-            del self.__objects[key]
-            self.save()
+# All States
+all_states = fs.all(State)
+print("All States: {}".format(len(all_states.keys())))
+for state_key in all_states.keys():
+    print(all_states[state_key])
