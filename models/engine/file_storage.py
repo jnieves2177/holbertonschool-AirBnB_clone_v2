@@ -1,48 +1,64 @@
 #!/usr/bin/python3
-""" Test delete feature
-"""
-from models.engine.file_storage import FileStorage
+"""Defines the FileStorage class."""
+import json
+from models.base_model import BaseModel
+from models.amenity import Amenity
+from models.city import City
+from models.place import Place
+from models.review import Review
 from models.state import State
+from models.user import User
 
-fs = FileStorage()
 
-# All States
-all_states = fs.all(State)
-print("All States: {}".format(len(all_states.keys())))
-for state_key in all_states.keys():
-    print(all_states[state_key])
+class FileStorage:
+    """Represent an abstracted storage engine."""
 
-# Create a new State
-new_state = State()
-new_state.name = "California"
-fs.new(new_state)
-fs.save()
-print("New State: {}".format(new_state))
+    __file_path = "file.json"
+    __objects = {}
 
-# All States
-all_states = fs.all(State)
-print("All States: {}".format(len(all_states.keys())))
-for state_key in all_states.keys():
-    print(all_states[state_key])
+    def all(self, cls=None):
+        """Return a dictionary of instantiated objects in __objects."""
 
-# Create another State
-another_state = State()
-another_state.name = "Nevada"
-fs.new(another_state)
-fs.save()
-print("Another State: {}".format(another_state))
+        if cls is not None:
+            if type(cls) == str:
+                cls = eval(cls)
+            cls_dict = {}
+            for k, v in self.__objects.items():
+                if type(v) == cls:
+                    cls_dict[k] = v
+            return cls_dict
+        return self.__objects
 
-# All States
-all_states = fs.all(State)
-print("All States: {}".format(len(all_states.keys())))
-for state_key in all_states.keys():
-    print(all_states[state_key])
+    def new(self, obj):
+        """Set in __objects obj with key <obj_class_name>.id."""
+        self.__objects["{}.{}".format(type(obj).__name__, obj.id)] = obj
 
-# Delete the new State
-fs.delete(new_state)
+    def save(self):
+        """Serialize __objects to the JSON file __file_path."""
 
-# All States
-all_states = fs.all(State)
-print("All States: {}".format(len(all_states.keys())))
-for state_key in all_states.keys():
-    print(all_states[state_key])
+        odict = {o: self.__objects[o].to_dict() for o in self.__objects.keys()}
+        with open(self.__file_path, "w", encoding="utf-8") as f:
+            json.dump(odict, f)
+
+    def reload(self):
+        """Deserialize the JSON file __file_path to __objects, if it exists."""
+
+        try:
+            with open(self.__file_path, "r", encoding="utf-8") as f:
+                for o in json.load(f).values():
+                    name = o["__class__"]
+                    del o["__class__"]
+                    self.new(eval(name)(**o))
+        except FileNotFoundError:
+            pass
+
+    def delete(self, obj=None):
+        """Delete a given object from __objects, if it exists."""
+        try:
+            del self.__objects["{}.{}".format(type(obj).__name__, obj.id)]
+        except (AttributeError, KeyError):
+            pass
+
+    def close(self):
+        """Call the reload method."""
+        self.reload()
